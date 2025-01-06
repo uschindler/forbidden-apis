@@ -21,6 +21,8 @@ import java.util.Locale;
 
 import org.objectweb.asm.commons.Method;
 
+import de.thetaphi.forbiddenapis.Checker.ViolationSeverity;
+
 public final class ForbiddenViolation implements Comparable<ForbiddenViolation> {
   
   /** Separator used to allow multiple description lines per violation. */
@@ -31,17 +33,19 @@ public final class ForbiddenViolation implements Comparable<ForbiddenViolation> 
   public final String description;
   public final String locationInfo;
   public final int lineNo;
+  public final ViolationSeverity severity;
   
-  ForbiddenViolation(int groupId, String description, String locationInfo, int lineNo) {
-    this(groupId, null, description, locationInfo, lineNo);
+  ForbiddenViolation(int groupId, String description, String locationInfo, int lineNo, ViolationSeverity severity) {
+    this(groupId, null, description, locationInfo, lineNo, severity);
   }
 
-  ForbiddenViolation(int groupId, Method targetMethod, String description, String locationInfo, int lineNo) {
+  ForbiddenViolation(int groupId, Method targetMethod, String description, String locationInfo, int lineNo, ViolationSeverity severity) {
     this.groupId = groupId;
     this.targetMethod = targetMethod;
     this.description = description;
     this.locationInfo = locationInfo;
     this.lineNo = lineNo;
+    this.severity = severity;
   }
   
   public void setGroupId(int groupId) {

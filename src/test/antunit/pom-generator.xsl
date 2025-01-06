@@ -56,6 +56,7 @@
                 <bundledSignature>jdk-system-out</bundledSignature>
               </bundledSignatures>
               <signatures>${antunit.signatures}</signatures>
+              <!-- TODO: pass ignored signatures -->
             </configuration>
             <executions>
               <execution>
@@ -83,6 +84,31 @@
           </dependency>
         </xsl:for-each>
       </dependencies>
+      
+      <profiles>
+        <profile>
+          <id>withAdjustedSeverity</id>
+          <activation>
+            <property>
+              <name>antunit.signatureWithSeveritySuppress</name>
+            </property>
+          </activation>
+          <build>
+            <plugins>
+              <plugin>
+                <groupId>${groupId}</groupId>
+                <artifactId>${artifactId}</artifactId>
+                <configuration>
+                  <signaturesWithSeveritySuppress>
+                    <!-- CSV values not supported due to https://bugs.eclipse.org/bugs/show_bug.cgi?id=475588, Maven 3.1.1 used for testing still uses Sisu 0.0.0.M5 -->
+                    <signatureWithSeveritySuppress>${antunit.signatureWithSeveritySuppress}</signatureWithSeveritySuppress>
+                  </signaturesWithSeveritySuppress>
+                </configuration>
+              </plugin>
+            </plugins>
+          </build>
+        </profile>
+      </profiles>
     </project>
   </xsl:template>
   

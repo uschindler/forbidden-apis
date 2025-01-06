@@ -20,6 +20,7 @@ package de.thetaphi.forbiddenapis.ant;
 
 import static de.thetaphi.forbiddenapis.Checker.Option.*;
 
+import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.tools.ant.AntClassLoader;
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Project;
@@ -43,6 +44,7 @@ import de.thetaphi.forbiddenapis.ParseException;
 
 import java.io.IOException;
 import java.io.File;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -61,6 +63,9 @@ public class AntTask extends Task implements Constants {
   private final Union apiSignatures = new Union();
   private final Collection<BundledSignaturesType> bundledSignatures = new LinkedHashSet<>();
   private final Collection<SuppressAnnotationType> suppressAnnotations = new LinkedHashSet<>();
+  private final Collection<String> signaturesWithSeverityWarn = new LinkedHashSet<>();;
+  private final Collection<String> signaturesWithSeveritySuppress = new LinkedHashSet<>();;
+
   private Path classpath = null;
   
   private boolean failOnUnsupportedJava = false;
@@ -173,6 +178,12 @@ public class AntTask extends Task implements Constants {
           } else {
             checker.parseSignaturesFile(r.getInputStream(), r.toString());
           }
+        }
+        if (!signaturesWithSeverityWarn.isEmpty()) {
+          checker.setSignaturesSeverity(signaturesWithSeverityWarn, Checker.ViolationSeverity.WARNING);
+        }
+        if (!signaturesWithSeveritySuppress.isEmpty()) {
+          checker.setSignaturesSeverity(signaturesWithSeveritySuppress, Checker.ViolationSeverity.SUPPRESS);
         }
       } catch (IOException ioe) {
         throw new BuildException("IO problem while reading files with API signatures: " + ioe.getMessage(), ioe);
@@ -289,6 +300,23 @@ public class AntTask extends Task implements Constants {
     createBundledSignatures().setName(name);
   }
   
+  /** 
+   * A list of forbidden API signatures for which violations should not be reported at all (i.e. neither fail the build nor appear in the logs). This takes precedence over {@link #failOnViolation} and {@link #signaturesWithSeverityWarn}.
+   * In order to be effective the signature must be given in either {@link #bundledSignatures}, {@link #signaturesFiles}, {@link #signaturesArtifacts}, or {@link #signatures}.
+   * @since 3.9
+   */
+  public void setSignaturesWithSeverityWarn(String signature) {
+      signaturesWithSeverityWarn.add(signature);
+  }
+
+  /** A list of forbidden API signatures for which violations should not be reported at all (i.e. neither fail the build nor appear in the logs). This takes precedence over {@link #failOnViolation} and {@link #signaturesWithSeverityWarn}.
+   * In order to be effective the signature must be given in either {@link #bundledSignatures}, {@link #signaturesFiles}, {@link #signaturesArtifacts}, or {@link #signatures}.
+   * @since 3.9
+   */
+  public void setSignaturesWithSeveritySuppress(String signature) {
+    signaturesWithSeveritySuppress.add(signature);
+  }
+
   /** Creates a instance of an annotation class name that suppresses error reporting in classes/methods/fields. */
   public SuppressAnnotationType createSuppressAnnotation() {
     final SuppressAnnotationType s = new SuppressAnnotationType();

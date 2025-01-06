@@ -25,6 +25,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.maven.plugins.annotations.Parameter;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.InvalidUserDataException;
@@ -231,7 +233,38 @@ public class CheckForbiddenApis extends DefaultTask implements PatternFilterable
   public void setBundledSignatures(Set<String> bundledSignatures) {
     data.bundledSignatures = bundledSignatures;
   }
+  /**
+   *Aa list of forbidden API signatures for which violations should not be reported at all (i.e. neither fail the build nor appear in the logs). This takes precedence over {@link #getFailOnViolation()} and {@link #getSignaturesWithSeverityWarn()}.
+   * In order to be effective the signature must be given in either {@link #getSignaturesFiles()}, {@link #getBundledSignatures()}, or {@link #getSignatures}.
+   * @since 3.9
+   */
+  @Input
+  @Optional
+  public Set<String> getSignaturesWithSeveritySuppress() {
+    return data.signaturesWithSeveritySuppress;
+  }
 
+  /** @see #getSignaturesWithSeveritySuppress */
+  public void setSignaturesWithSeveritySuppress(Set<String> signatures) {
+    data.signaturesWithSeveritySuppress = signatures;
+  }
+  
+  /**
+   * A list of forbidden API signatures for which violations should lead to a warning only (i.e. not fail the build). This takes precedence over {@link #getFailOnViolation()}.
+   * In order to be effective the signature must be given in either {@link #getSignaturesFiles()}, {@link #getBundledSignatures()}, or {@link #getSignatures}.
+   * @since 3.9
+   */
+  @Input
+  @Optional
+  public Set<String> getSignaturesWithSeverityWarn() {
+    return data.signaturesWithSeverityWarn;
+  }
+
+  /** @see #getSignaturesWithSeverityWarj */
+  public void setSignaturesWithSeverityWarn(Set<String> signatures) {
+    data.signaturesWithSeverityWarn = signatures;
+  }
+  
   /**
    * Fail the build, if the bundled ASM library cannot read the class file format
    * of the runtime library or the runtime library cannot be discovered.
@@ -596,6 +629,14 @@ public class CheckForbiddenApis extends DefaultTask implements PatternFilterable
             sb.append(line).append(NL);
           }
           checker.parseSignaturesString(sb.toString());
+        }
+        Set<String> signaturesWithSeverityWarn = getSignaturesWithSeverityWarn();
+        if (signaturesWithSeverityWarn != null && !signaturesWithSeverityWarn.isEmpty()) {
+            checker.setSignaturesSeverity(signaturesWithSeverityWarn, Checker.ViolationSeverity.WARNING);
+        }
+        Set<String> signaturesWithSeveritySuppress = getSignaturesWithSeveritySuppress();
+        if (signaturesWithSeveritySuppress != null && !signaturesWithSeveritySuppress.isEmpty()) {
+          checker.setSignaturesSeverity(signaturesWithSeveritySuppress, Checker.ViolationSeverity.SUPPRESS);
         }
       } catch (IOException ioe) {
         throw new GradleException("IO problem while reading files with API signatures.", ioe);

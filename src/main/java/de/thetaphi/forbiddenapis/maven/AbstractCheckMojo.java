@@ -116,6 +116,22 @@ public abstract class AbstractCheckMojo extends AbstractMojo implements Constant
   @Parameter(required = false)
   private String[] bundledSignatures;
 
+  /** 
+   * Specifies a list of forbidden API signatures for which violations should lead to a warning only (i.e. not fail the build). This takes precedence over {@link #failOnViolation}.
+   * In order to be effective the signature must be given in either {@link #bundledSignatures}, {@link #signaturesFiles}, {@link #signaturesArtifacts}, or {@link #signatures}.
+   * @since 3.9
+   */
+  @Parameter(required = false)
+  private String[] signaturesWithSeverityWarn;
+  
+  /** 
+   * Specifies a list of forbidden API signatures for which violations should not be reported at all (i.e. neither fail the build nor appear in the logs). This takes precedence over {@link #failOnViolation} and {@link #signaturesWithSeverityWarn}.
+   * In order to be effective the signature must be given in either {@link #bundledSignatures}, {@link #signaturesFiles}, {@link #signaturesArtifacts}, or {@link #signatures}.
+   * @since 3.9
+   */
+  @Parameter(required = false)
+  private String[] signaturesWithSeveritySuppress;
+
   /**
    * Fail the build, if the bundled ASM library cannot read the class file format
    * of the runtime library or the runtime library cannot be discovered.
@@ -450,6 +466,12 @@ public abstract class AbstractCheckMojo extends AbstractMojo implements Constant
         final String sig = (signatures != null) ? signatures.trim() : null;
         if (sig != null && sig.length() != 0) {
           checker.parseSignaturesString(sig);
+        }
+        if (signaturesWithSeverityWarn != null) {
+          checker.setSignaturesSeverity(Arrays.asList(signaturesWithSeverityWarn), Checker.ViolationSeverity.WARNING);
+        }
+        if (signaturesWithSeveritySuppress != null) {
+          checker.setSignaturesSeverity(Arrays.asList(signaturesWithSeveritySuppress), Checker.ViolationSeverity.SUPPRESS);
         }
       } catch (IOException ioe) {
         throw new MojoExecutionException("IO problem while reading files with API signatures.", ioe);

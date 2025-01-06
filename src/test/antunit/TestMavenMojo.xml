@@ -25,6 +25,7 @@
 
   <target name="testMyself">
     <artifact:mvn pom="${antunit.fake-pom}" mavenVersion="${maven.version}" failonerror="true" fork="${maven.fork}">
+      <arg value="-e"/>
       <arg value="-s"/><arg file="${maven.local.settings}"/>
       <arg value="${groupId}:${artifactId}:${version}:check"/>
       <syspropertyset refid="injected-properties"/>
@@ -68,7 +69,18 @@
     </artifact:mvn>
     <au:assertLogContains text="You are crazy that you disallow strings"/>
   </target>
-  
+
+  <target name="testNoViolationWhenSuppressed">
+    <artifact:mvn pom="${antunit.fake-pom}" mavenVersion="${maven.version}" failonerror="true" fork="${maven.fork}">
+      <arg value="-s"/><arg file="${maven.local.settings}"/>
+      <arg value="${groupId}:${artifactId}:${version}:check"/>
+      <syspropertyset refid="injected-properties"/>
+      <sysproperty key="antunit.signatureWithSeveritySuppress" value="java.lang.String"/>
+      <sysproperty key="antunit.signatures" value="java.lang.String @ You are crazy that you disallow strings (suppressed)"/>
+    </artifact:mvn>
+	<au:assertLogDoesntContain text="You are crazy that you disallow strings (suppressed)"/> 
+  </target>
+
   <target name="testFailOnUnresolveableSignatures">
     <au:expectfailure>
       <artifact:mvn pom="${antunit.fake-pom}" mavenVersion="${maven.version}" failonerror="true" fork="${maven.fork}">

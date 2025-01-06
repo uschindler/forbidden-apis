@@ -41,7 +41,9 @@ public class CheckForbiddenApisExtension {
   public Set<URL> signaturesURLs = new LinkedHashSet<>();
   public List<String> signatures = new ArrayList<>();
   public Set<String> bundledSignatures = new LinkedHashSet<>(),
-    suppressAnnotations = new LinkedHashSet<>();
+    suppressAnnotations = new LinkedHashSet<>(),
+    signaturesWithSeveritySuppress = new LinkedHashSet<>(),
+    signaturesWithSeverityWarn = new LinkedHashSet<>();
   public boolean failOnUnsupportedJava = false,
     failOnMissingClasses = true,
     failOnUnresolvableSignatures = true,

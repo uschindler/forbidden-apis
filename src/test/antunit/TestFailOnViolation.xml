@@ -35,6 +35,6 @@
       java.awt.Color @ Color is disallowed, thats not bad, because ANT has no colors...
       java.lang.String @ You are crazy that you disallow strings
     </forbiddenapis>
-    <au:assertLogContains level="error" text="java.lang.String [You are crazy that you disallow strings]"/>
+    <au:assertLogContains level="warning" text="java.lang.String [You are crazy that you disallow strings]"/>
   </target>
 </project>

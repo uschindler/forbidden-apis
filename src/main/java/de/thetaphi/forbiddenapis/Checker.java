@@ -30,6 +30,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -45,6 +46,8 @@ import java.util.regex.Pattern;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Type;
 
+import de.thetaphi.forbiddenapis.Checker.ViolationSeverity;
+
 /**
  * Forbidden APIs checker class.
  */
@@ -56,6 +59,10 @@ public final class Checker implements RelatedClassLookup, Constants {
     FAIL_ON_UNRESOLVABLE_SIGNATURES,
     IGNORE_SIGNATURES_OF_MISSING_CLASSES,
     DISABLE_CLASSLOADING_CACHE
+  }
+
+  public enum ViolationSeverity {
+      ERROR, WARNING, INFO, DEBUG, SUPPRESS
   }
 
   public final boolean isSupportedJDK;
@@ -360,6 +367,11 @@ public final class Checker implements RelatedClassLookup, Constants {
     return forbiddenSignatures.noSignaturesFilesParsed();
   }
   
+  /** Adjusts the severity of a specific signature. */
+  public void setSignaturesSeverity(Collection<String> signatures, ViolationSeverity severity) throws ParseException, IOException {
+    forbiddenSignatures.setSignaturesSeverity(signatures, severity);
+  }
+  
   /** Parses and adds a class from the given stream to the list of classes to check. Closes the stream when parsed (on Exception, too)! Does not log anything. */
   public void addClassToCheck(final InputStream in, String name) throws IOException {
     final ClassReader reader;
@@ -417,7 +429,7 @@ public final class Checker implements RelatedClassLookup, Constants {
   /** Parses a class and checks for valid method invocations */
   private int checkClass(ClassMetadata c, Pattern suppressAnnotationsPattern) throws ForbiddenApiException {
     final String className = c.getBinaryClassName();
-    final ClassScanner scanner = new ClassScanner(c, this, forbiddenSignatures, suppressAnnotationsPattern); 
+    final ClassScanner scanner = new ClassScanner(c, this, forbiddenSignatures, suppressAnnotationsPattern, options.contains(Option.FAIL_ON_VIOLATION)); 
     try {
       c.getReader().accept(scanner, ClassReader.SKIP_FRAMES);
     } catch (RelatedClassLoadingException rcle) {
@@ -452,12 +464,31 @@ public final class Checker implements RelatedClassLookup, Constants {
     }
     final List<ForbiddenViolation> violations = scanner.getSortedViolations();
     final Pattern splitter = Pattern.compile(Pattern.quote(ForbiddenViolation.SEPARATOR));
+    int numErrors = 0;
     for (final ForbiddenViolation v : violations) {
+      if (v.severity == ViolationSeverity.ERROR) {
+        numErrors++;
+      }
       for (final String line : splitter.split(v.format(className, scanner.getSourceFile()))) {
-        logger.error(line);
+        switch (v.severity) {
+        case DEBUG:
+          logger.debug(line);
+          break;
+        case INFO:
+          logger.info(line);
+          break;
+        case WARNING:
+          logger.warn(line);
+          break;
+        case ERROR:
+          logger.error(line);
+          break;
+        default:
+          break;
+        }
       }
     }
-    return violations.size();
+    return numErrors;
   }
   
   public void run() throws ForbiddenApiException {
@@ -483,5 +514,4 @@ public final class Checker implements RelatedClassLookup, Constants {
       logger.info(message);
     }
   }
-  
 }

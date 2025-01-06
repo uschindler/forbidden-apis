@@ -53,8 +53,9 @@ import de.thetaphi.forbiddenapis.StdIoLogger;
 public final class CliMain implements Constants {
 
   private final Logger logger;
-  private final Option classpathOpt, dirOpt, includesOpt, excludesOpt, signaturesfileOpt, bundledsignaturesOpt, suppressannotationsOpt,
-    allowmissingclassesOpt, ignoresignaturesofmissingclassesOpt, allowunresolvablesignaturesOpt, versionOpt, helpOpt, debugOpt;
+  private final Option classpathOpt, dirOpt, includesOpt, excludesOpt, signaturesfileOpt, bundledsignaturesOpt, signatureswithseveritysuppressOpt, 
+    signatureswithseveritywarnOpt, suppressannotationsOpt, allowmissingclassesOpt, ignoresignaturesofmissingclassesOpt, allowunresolvablesignaturesOpt,
+    versionOpt, helpOpt, debugOpt;
   private final CommandLine cmd;
   
   public static final int EXIT_SUCCESS = 0;
@@ -121,6 +122,20 @@ public final class CliMain implements Constants {
         .valueSeparator(',')
         .argName("name")
         .build());
+    options.addOption(signatureswithseveritysuppressOpt = Option.builder()
+        .desc("forbidden API signature for which violations should not be reported at all (separated by commas or option can be given multiple times)")
+        .longOpt("signatureswithseveritysuppress")
+        .hasArgs()
+        .valueSeparator(',')
+        .argName("name")
+        .build());
+    options.addOption(signatureswithseveritywarnOpt = Option.builder()
+        .desc("forbidden API signature for which violations just be reported at warn level but not lead to a non-success exit code (separated by commas or option can be given multiple times)")
+        .longOpt("signatureswithseveritywarn")
+        .hasArgs()
+        .valueSeparator(',')
+        .argName("name")
+        .build());
     options.addOption(suppressannotationsOpt = Option.builder()
         .desc("class name or glob pattern of annotation that suppresses error reporting in classes/methods/fields (separated by commas or option can be given multiple times)")
         .longOpt("suppressannotation")
@@ -140,7 +155,7 @@ public final class CliMain implements Constants {
         .desc("DEPRECATED: don't fail if a signature is not resolving")
         .longOpt("allowunresolvablesignatures")
         .build());
-
+    
     try {
       this.cmd = new DefaultParser().parse(options, args);
       final boolean debugLogging = cmd.hasOption(debugOpt.getLongOpt());
@@ -275,6 +290,14 @@ public final class CliMain implements Constants {
         if (signaturesFiles != null) for (String sf : new LinkedHashSet<>(Arrays.asList(signaturesFiles))) {
           final File f = new File(sf).getAbsoluteFile();
           checker.parseSignaturesFile(f);
+        }
+        final String[] signaturesWithSeverityWarn = cmd.getOptionValues(signatureswithseveritywarnOpt.getLongOpt());
+        if (signaturesWithSeverityWarn != null) {
+          checker.setSignaturesSeverity(Arrays.asList(signaturesWithSeverityWarn), Checker.ViolationSeverity.WARNING);
+        }
+        final String[] signaturesWithSeveritySuppress = cmd.getOptionValues(signatureswithseveritysuppressOpt.getLongOpt());
+        if (signaturesWithSeveritySuppress != null) {
+          checker.setSignaturesSeverity(Arrays.asList(signaturesWithSeveritySuppress), Checker.ViolationSeverity.SUPPRESS);
         }
       } catch (IOException ioe) {
         throw new ExitException(EXIT_ERR_OTHER, "IO problem while reading files with API signatures: " + ioe);

@@ -74,6 +74,20 @@ and the system classloader, not ANT's class loader.</p>
 </tr>
 
 <tr>
+  <td>signaturesWithSeveritySuppress</td>
+  <td><code>String</code></td>
+  <td></td>
+  <td>A forbidden API signature for which violations should not be reported at all (i.e. neither fail the build nor appear in the logs). This takes precedence over<code>failOnViolation</code> and <code>signaturesWithSeverityWarn</code>.</td>
+</tr>
+
+<tr>
+  <td>signaturesWithSeverityWarn</td>
+  <td><code>String</code></td>
+  <td></td>
+  <td>A forbidden API signature for which violations should be reported as warnings (i.e. not fail the build). This takes precedence over<code>failOnViolation</code>.</td>
+</tr>
+
+<tr>
   <td>classpath</td>
   <td><code>Path</code></td>
   <td></td>
@@ -184,7 +198,7 @@ and the system classloader, not ANT's class loader.</p>
 
 <p>This task supports all <a href="https://ant.apache.org/manual/Types/resources.html">Ant resource</a> types
 (<code>fileset</code>, <code>filelist</code>, <code>file</code>, <code>tarfileset</code>, <code>zipfileset</code>,...)
-and uses all class files from them. It automatically adds an implcit filter to file names ending in <code>'.class'</code>,
+and uses all class files from them. It automatically adds an implicit filter to file names ending in <code>'.class'</code>,
 so you don't need to add this as include attribute to those collections.</p>
 
 <p>You can also pass one or multiple <code>classpath</code> elements to form a classpath. Ideally use the same configuration like the <code>javac</code> task.</p>
