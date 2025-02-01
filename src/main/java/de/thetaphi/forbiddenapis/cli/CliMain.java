@@ -154,6 +154,7 @@ public final class CliMain implements Constants {
         throw new ExitException(EXIT_SUCCESS);
       }
     } catch (org.apache.commons.cli.ParseException pe) {
+      System.out.println(pe.getMessage());
       printHelp(options);
       throw new ExitException(EXIT_ERR_CMDLINE);
     }
