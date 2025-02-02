@@ -20,16 +20,19 @@ import static de.thetaphi.forbiddenapis.Checker.Option.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.LinkedHashSet;
-import java.util.Locale;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 import java.net.JarURLConnection;
 import java.net.URLConnection;
 import java.net.URLClassLoader;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.MalformedURLException;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
@@ -67,7 +70,7 @@ public final class CliMain implements Constants {
     final OptionGroup required = new OptionGroup();
     required.setRequired(true);
     required.addOption(dirOpt = Option.builder("d")
-        .desc("directory with class files to check for forbidden api usage; this directory is also added to classpath")
+        .desc("directory (or jar file) with class files to check for forbidden api usage; this directory is also added to classpath")
         .longOpt("dir")
         .hasArg()
         .argName("directory")
@@ -196,8 +199,50 @@ public final class CliMain implements Constants {
   }
   
   public void run() throws ExitException {
-    final File classesDirectory = new File(cmd.getOptionValue(dirOpt.getLongOpt())).getAbsoluteFile();
-    
+    File firstClassesDirectory = new File(cmd.getOptionValue(dirOpt.getLongOpt())).getAbsoluteFile();
+
+    if (!firstClassesDirectory.exists()) {
+      throw new ExitException(EXIT_ERR_OTHER, "Directory with class files does not exist: " + firstClassesDirectory);
+    }
+
+    try {
+      if (!firstClassesDirectory.isDirectory() && firstClassesDirectory.getName().endsWith(".jar")) {
+        // Create a temporary directory
+        Path tempDir = Files.createTempDirectory("jar_extract_");
+        tempDir.toFile().deleteOnExit();
+        System.out.println("Directory is a jar - temporary extracting to " + tempDir);
+
+        // Extract JAR contents
+        try (JarFile jarFile = new JarFile(firstClassesDirectory)) {
+          Enumeration<JarEntry> entries = jarFile.entries();
+          while (entries.hasMoreElements()) {
+            JarEntry entry = entries.nextElement();
+            Path entryDestination = tempDir.resolve(entry.getName());
+
+            if (entry.isDirectory()) {
+              Files.createDirectories(entryDestination);
+            } else {
+              Files.createDirectories(entryDestination.getParent());
+              try (InputStream in = jarFile.getInputStream(entry);
+                   OutputStream out = Files.newOutputStream(entryDestination)) {
+                byte[] buffer = new byte[8192];
+                int len;
+                while ((len = in.read(buffer)) > 0) {
+                  out.write(buffer, 0, len);
+                }
+              }
+            }
+            entryDestination.toFile().deleteOnExit();
+          }
+        }
+        firstClassesDirectory = tempDir.toFile();
+      }
+    } catch (IOException e) {
+      throw new ExitException(EXIT_ERR_OTHER, "Could not unpack jar file: " + e);
+    }
+
+    final File classesDirectory = firstClassesDirectory;
+
     // parse classpath given as argument; add -d to classpath, too
     final String[] classpath = cmd.getOptionValues(classpathOpt.getLongOpt());
     final URL[] urls;
@@ -243,9 +288,7 @@ public final class CliMain implements Constants {
       }
       
       logger.info("Scanning for classes to check...");
-      if (!classesDirectory.exists()) {
-        throw new ExitException(EXIT_ERR_OTHER, "Directory with class files does not exist: " + classesDirectory);
-      }
+
       String[] includes = cmd.getOptionValues(includesOpt.getLongOpt());
       if (includes == null || includes.length == 0) {
         includes = new String[] { "**/*.class" };
